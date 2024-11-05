@@ -1,0 +1,45 @@
+# Gradle files
+.gradle
+/build
+!/gradle/wrapper/gradle-wrapper.jar
+
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Java class files
+*.class
+
+# Local configuration filc
+local.properties
+
+# IntelliJ
+*.iml
+/.idea
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+
+# Android Studio
+/local.properties
+/*/out
+/*/*/production
+*.ipr
+*~
+*.swp
+
+# Package Files #
+*.jar
+*.nar
+*.zip
+*.tar.gz
+*.rar
