@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">EchoWise</string>
+    <string name="echowise">EchoWise</string>
+    <string name="your_personal_voice_assistant">Your Personal Voice Assistant</string>
+    <string name="record_voice">Record Voice</string>
+    <string name="tap_the_microphone_to_start_speaking">Tap the microphone to start speaking</string>
+    <string name="waiting_for_command">Waiting for command</string>
 </resources>
