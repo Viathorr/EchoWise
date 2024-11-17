@@ -1,21 +1,26 @@
 package com.example.echowise
 
 import android.Manifest
-import android.annotation.SuppressLint
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
 import android.os.BatteryManager
+import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -25,23 +30,37 @@ import java.util.Locale
 
 //  TODO: list of simple commands my app can handle:
 //  1. Open Camera  +
-//  2. Open Settings
+//  2. Open Settings  +
 //  3. "What's the time?", "What's the date?" +
 //  4. Battery Level +
-//  5. Turn on/off Wi-Fi/Bluetooth
-//  6. Set a Reminder (basic)
+//  5. Turn on/off Wi-Fi/Bluetooth +
 
 class MainActivity : AppCompatActivity() {
     private lateinit var recordButton: ImageButton
     private lateinit var responseLog: TextView
     private lateinit var instructionTextView: TextView
+    private lateinit var speechRecognizer: SpeechRecognizer;
 
     private var dotCount = 0
     private val dots = "..."
 
+    private val speechRecognizerLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+                val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                if (!matches.isNullOrEmpty()) {
+                    val command = matches[0].lowercase(Locale.getDefault())
+                    handleUserCommand(command)
+                } else {
+                    Toast.makeText(this, "No speech recognized. Please try again.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
     companion object {
         private const val REQUEST_PERMISSIONS_CODE = 100
         private const val REQUEST_IMAGE_CAPTURE = 1
+        private const val REQUEST_BLUETOOTH_CONNECT = 12
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,40 +72,32 @@ class MainActivity : AppCompatActivity() {
         responseLog = findViewById(R.id.responseLog)
         instructionTextView = findViewById(R.id.instruction)
 
-        startTextViewAnimations()
+        startFadingAnimation()
         recordButton.setOnClickListener {
             startVoiceInput()
-//            openCamera()
-//            openSettings()
         }
     }
 
-    private fun startTextViewAnimations() {
-        val fadeAnimation = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.dots_animation)
+    private fun startFadingAnimation() {
+        val fadeAnimation = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.fade_animation)
         instructionTextView.startAnimation(fadeAnimation)
-
-        val handler = Handler(Looper.getMainLooper())
-        val runnable = object : Runnable {
-            @SuppressLint("SetTextI18n")
-            override fun run() {
-                if (dotCount < 3) {
-                    responseLog.text = "Waiting for command" + dots.substring(0, ++dotCount)
-                } else {
-                    dotCount = 0
-                    responseLog.text = "Waiting for command"
-                }
-                handler.postDelayed(this, 500)
-            }
-        }
-        handler.post(runnable)
     }
 
     private fun startVoiceInput() {
-        // Check for permissions
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO))
         } else {
-            // TODO: implement voice recording logic
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening... Please say a command.")
+            }
+
+            try {
+                speechRecognizerLauncher.launch(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Speech recognition is not supported on this device.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -94,15 +105,40 @@ class MainActivity : AppCompatActivity() {
         when {
             command.contains("time", ignoreCase = true) -> {
                 val response = "The current time is ${getCurrentDateOrTime("hh:mm a")}"
-                // TODO: add other logic
+                responseLog.text = response
             }
             command.contains("date", ignoreCase = true) -> {
                 val response = "Today's date is ${getCurrentDateOrTime("EEEE, MMMM dd, yyyy")}"
-                // TODO: add other logic
+                responseLog.text = response
             }
             command.contains("battery", ignoreCase = true) -> {
-                val response = getBatteryLevel()?.let { "Battery level is at ${it.toInt()}%." } ?: "Unable to retrieve battery level."
-                // TODO: add other logic
+                val response = getBatteryLevel()?.let { "Battery level is ${it.toInt()}%." } ?: "Unable to retrieve battery level."
+                responseLog.text = response
+            }
+            command.contains(Regex("wi-?fi", RegexOption.IGNORE_CASE)) -> {
+                if (command.contains("on", ignoreCase = true)) {
+                    checkAndToggleWifi("on")
+                } else {
+                    checkAndToggleWifi("off")
+                }
+            }
+            command.contains("bluetooth", ignoreCase = true) -> {
+                if (command.contains("on", ignoreCase = true)) {
+                    toggleBluetooth(true)
+                } else {
+                    toggleBluetooth(false)
+                }
+            }
+            command.contains("settings", ignoreCase = true) -> {
+                openSettings()
+                responseLog.text = "Opening Settings..."
+            }
+            command.contains("camera", ignoreCase = true) -> {
+                openCamera()
+                responseLog.text = "Opening Camera..."
+            }
+            else -> {
+                responseLog.text = "Sorry, I didn't understand that command."
             }
         }
     }
@@ -122,7 +158,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getBatteryLevel(): Float? {
-        var batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { intentFilter ->
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { intentFilter ->
             this.registerReceiver(null, intentFilter)
         };
 
@@ -160,6 +196,53 @@ class MainActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             Toast.makeText(this, "Error opening settings: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun checkAndToggleWifi(state: String) {
+        val wifiManager = this.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+        if (wifiManager.isWifiEnabled && state == "on") {
+            Toast.makeText(this, "Wi-Fi is already on.", Toast.LENGTH_SHORT).show()
+        } else if (!wifiManager.isWifiEnabled && state == "off") {
+            Toast.makeText(this, "Wi-Fi is already off.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, String.format("Please turn Wi-Fi %s manually.", state), Toast.LENGTH_SHORT).show()
+            val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
+            this.startActivity(intent)
+        }
+    }
+
+    private fun toggleBluetooth(enable: Boolean) {
+        val bluetoothAdapter: BluetoothAdapter? = (this.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
+
+        if (bluetoothAdapter == null) {
+            Toast.makeText(this, "Bluetooth is not supported on this device.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this as Activity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH_CONNECT)
+                return
+            }
+        }
+
+        if (enable) {
+            if (!bluetoothAdapter.isEnabled) {
+                val enableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                this.startActivity(enableIntent)
+                Toast.makeText(this, "Turning on Bluetooth...", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Bluetooth is already on.", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            if (bluetoothAdapter.isEnabled) {
+                bluetoothAdapter.disable()
+                Toast.makeText(this, "Turning off Bluetooth...", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Bluetooth is already off.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }
