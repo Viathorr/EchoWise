@@ -8,14 +8,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.hardware.camera2.CameraManager
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.AlarmClock
 import android.provider.MediaStore
 import android.provider.Settings
 import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -28,21 +29,19 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-//  TODO: list of simple commands my app can handle:
+//  list of simple commands my app can handle:
 //  1. Open Camera  +
 //  2. Open Settings  +
 //  3. "What's the time?", "What's the date?" +
 //  4. Battery Level +
 //  5. Turn on/off Wi-Fi/Bluetooth +
+//  6. Turn on/off a Flashlight +
+//  7. Open an alarm clock app +
 
 class MainActivity : AppCompatActivity() {
     private lateinit var recordButton: ImageButton
     private lateinit var responseLog: TextView
     private lateinit var instructionTextView: TextView
-    private lateinit var speechRecognizer: SpeechRecognizer;
-
-    private var dotCount = 0
-    private val dots = "..."
 
     private val speechRecognizerLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -101,11 +100,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setDefaultText() {
+        responseLog.text = "Waiting for command..."
+    }
+
     private fun handleUserCommand(command: String) {
         when {
             command.contains("time", ignoreCase = true) -> {
                 val response = "The current time is ${getCurrentDateOrTime("hh:mm a")}"
                 responseLog.text = response
+            }
+            command.contains("alarm", ignoreCase = true) -> {
+                setAlarm()
+                setDefaultText()
             }
             command.contains("date", ignoreCase = true) -> {
                 val response = "Today's date is ${getCurrentDateOrTime("EEEE, MMMM dd, yyyy")}"
@@ -115,12 +122,16 @@ class MainActivity : AppCompatActivity() {
                 val response = getBatteryLevel()?.let { "Battery level is ${it.toInt()}%." } ?: "Unable to retrieve battery level."
                 responseLog.text = response
             }
+            command.contains(Regex("(on|off)?\\s+flashlight\\s?(on|off)?", RegexOption.IGNORE_CASE)) -> {
+                toggleFlashlight(command.contains("on", ignoreCase = true))
+            }
             command.contains(Regex("wi-?fi", RegexOption.IGNORE_CASE)) -> {
                 if (command.contains("on", ignoreCase = true)) {
                     checkAndToggleWifi("on")
                 } else {
                     checkAndToggleWifi("off")
                 }
+                setDefaultText()
             }
             command.contains("bluetooth", ignoreCase = true) -> {
                 if (command.contains("on", ignoreCase = true)) {
@@ -128,6 +139,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     toggleBluetooth(false)
                 }
+                setDefaultText()
             }
             command.contains("settings", ignoreCase = true) -> {
                 openSettings()
@@ -139,6 +151,7 @@ class MainActivity : AppCompatActivity() {
             }
             else -> {
                 responseLog.text = "Sorry, I didn't understand that command."
+
             }
         }
     }
@@ -157,6 +170,11 @@ class MainActivity : AppCompatActivity() {
         return formatter.format(calendar.time)
     }
 
+    private fun setAlarm() {
+        val alarmIntent = Intent(AlarmClock.ACTION_SET_ALARM)
+        this.startActivity(alarmIntent)
+    }
+
     private fun getBatteryLevel(): Float? {
         val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { intentFilter ->
             this.registerReceiver(null, intentFilter)
@@ -168,6 +186,23 @@ class MainActivity : AppCompatActivity() {
             if (level >= 0 && scale > 0) {
                 level * 100 / scale.toFloat()
             } else null
+        }
+    }
+
+    private fun toggleFlashlight(enable: Boolean) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.CAMERA))
+        } else {
+            val cameraManager: CameraManager = this.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val cameraId: String = cameraManager.cameraIdList.firstOrNull() ?: ""
+
+            if (enable && cameraId != "") {
+                cameraManager.setTorchMode(cameraId, true)
+            } else if (!enable && cameraId != "") {
+                cameraManager.setTorchMode(cameraId, false)
+            } else {
+                Toast.makeText(this, "No flashlight is present.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
