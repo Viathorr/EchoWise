@@ -1,8 +1,56 @@
 <resources>
-    <string name="app_name">EchoWise</string>
-    <string name="echowise">EchoWise</string>
+    <string name="app_name" translatable="false">EchoWise</string>
+    <string name="echowise" translatable="false">EchoWise</string>
     <string name="your_personal_voice_assistant">Your Personal Voice Assistant</string>
     <string name="record_voice">Record Voice</string>
     <string name="tap_the_microphone_to_start_speaking">Tap the microphone to start speaking</string>
-    <string name="waiting_for_command">Waiting for command…</string>
+    <string name="waiting_for_command">Waiting for command...</string>
+    <string name="listening_prompt">Listening... Please say a command.</string>
+    <string name="speech_not_supported">Speech recognition is not supported on this device.</string>
+    <string name="command_not_recognized">Command not recognized. Please try again.</string>
+    <string name="command_time">time</string>
+    <string name="command_date">date</string>
+    <string name="command_battery">battery</string>
+    <string name="command_alarm">alarm</string>
+    <string name="command_settings">settings</string>
+    <string name="command_camera">camera</string>
+    <string name="command_flashlight">flashlight</string>
+    <string name="battery_level_message">Battery level is</string>
+    <string name="battery_error_message">Unable to retrieve battery level</string>
+    <string name="current_time_message">The current time is</string>
+    <string name="current_date_message">Today\'s date is</string>
+
+    <string name="on_keyword">on</string>
+    <string name="off_keyword">off</string>
+
+    <!-- Flashlight -->
+    <string name="flashlight_on">Turning on flashlight...</string>
+    <string name="flashlight_off">Turning off flashlight...</string>
+    <string name="flashlight_error">Failed to toggle flashlight.</string>
+
+    <!-- Bluetooth -->
+    <string name="bluetooth_on">Turning on Bluetooth...</string>
+    <string name="bluetooth_already_on">Bluetooth is already on.</string>
+    <string name="bluetooth_off">Turning off Bluetooth...</string>
+    <string name="bluetooth_already_off">Bluetooth is already off.</string>
+    <string name="bluetooth_error">Bluetooth is not supported.</string>
+
+    <!-- Wi-Fi -->
+    <string name="wifi_on">Turning on Wi-Fi...</string>
+    <string name="wifi_off">Turning off Wi-Fi...</string>
+    <string name="wifi_already_on">Wi-Fi is already on.</string>
+    <string name="wifi_already_off">Wi-Fi is already off.</string>
+    <string name="wifi_error">Failed to open settings.</string>
+
+    <!-- Alarm -->
+    <string name="alarm_setting">Setting alarm...</string>
+    <string name="alarm_error">No alarm app found :(</string>
+
+    <!-- Camera -->
+    <string name="camera_opening">Opening camera...</string>
+    <string name="camera_error">No camera app found :(</string>
+
+    <!-- Settings -->
+    <string name="settings_opening">Opening settings...</string>
+    <string name="settings_error">Unable to open settings :(</string>
 </resources>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="your_personal_voice_assistant">Ваш Особистий Голосовий Помічник</string>
+    <string name="record_voice">Записати Голос</string>
+    <string name="tap_the_microphone_to_start_speaking">"Натисніть мікрофон, щоб почати говорити "</string>
+    <string name="waiting_for_command">Очікування команди...</string>
+    <string name="listening_prompt">Слухаю... Скажіть команду.</string>
+    <string name="speech_not_supported">Розпізнавання мови не підтримується на цьому пристрої.</string>
+    <string name="command_not_recognized">Команду не розпізнано. Спробуйте ще раз.</string>
+    <string name="command_time">час</string>
+    <string name="command_date">дата</string>
+    <string name="command_battery">батаре</string>
+    <string name="command_alarm">будильник</string>
+    <string name="command_settings">налаштування</string>
+    <string name="command_camera">камер</string>
+    <string name="command_flashlight">ліхтарик</string>
+    <string name="battery_level_message">Рівень заряду батареї</string>
+    <string name="battery_error_message">Неможливо отримати рівень заряду батареї</string>
+    <string name="current_time_message">Поточний час</string>
+    <string name="current_date_message">Сьогоднішня дата</string>
+
+    <string name="on_keyword">вімкн</string>
+    <string name="off_keyword">вимкн</string>
+
+    <!-- Flashlight -->
+    <string name="flashlight_on">Увімкнення ліхтарика...</string>
+    <string name="flashlight_off">Вимкнення ліхтарика...</string>
+    <string name="flashlight_error">Не вдалося увімкнути ліхтарик.</string>
+
+    <!-- Bluetooth -->
+    <string name="bluetooth_on">Увімкнення Bluetooth...</string>
+    <string name="bluetooth_already_on">Bluetooth вже увімкнений.</string>
+    <string name="bluetooth_off">Вимкнення Bluetooth...</string>
+    <string name="bluetooth_already_off">Bluetooth вже вимкнений.</string>
+    <string name="bluetooth_error">Bluetooth не підтримується на цьому пристрої.</string>
+
+    <!-- Wi-Fi -->
+    <string name="wifi_on">Увімкнення Wi-Fi...</string>
+    <string name="wifi_off">Вимкнення Wi-Fi...</string>
+    <string name="wifi_already_on">Wi-Fi вже увімкнений.</string>
+    <string name="wifi_already_off">Wi-Fi вже вимкнений.</string>
+    <string name="wifi_error">Не вдалося відкрити налаштування.</string>
+
+    <!-- Alarm -->
+    <string name="alarm_setting">Встановлення будильника...</string>
+    <string name="alarm_error">Немає додатку для будильника :(</string>
+
+    <!-- Camera -->
+    <string name="camera_opening">Відкриття камери...</string>
+    <string name="camera_error">Немає додатку для камери :(</string>
+
+    <!-- Settings -->
+    <string name="settings_opening">Відкриття налаштувань...</string>
+    <string name="settings_error">Не вдалося відкрити налаштування :(</string>
+</resources>

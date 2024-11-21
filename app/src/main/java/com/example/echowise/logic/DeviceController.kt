@@ -17,9 +17,11 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.echowise.R
 import com.example.echowise.utils.AppConstants.REQUEST_PERMISSIONS_CODE
 
 class DeviceController(private val context: Context) {
+
     fun toggleFlashlight(enable: Boolean): String {
         Log.d("DeviceController", "toggleFlashlight called with enable=$enable")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -33,10 +35,10 @@ class DeviceController(private val context: Context) {
         return try {
             cameraManager.setTorchMode(cameraId, enable)
             Log.i("DeviceController", "Flashlight turned ${if (enable) "on" else "off"}.")
-            "Turning ${if (enable) "on" else "off"} flashlight..."
+            context.getString(if (enable) R.string.flashlight_on else R.string.flashlight_off)
         } catch (e: Exception) {
             Log.e("DeviceController", "Error toggling flashlight: ${e.message}")
-            "Failed to toggle flashlight."
+            context.getString(R.string.flashlight_error)
         }
     }
 
@@ -46,8 +48,8 @@ class DeviceController(private val context: Context) {
 
         if (bluetoothAdapter == null) {
             Log.e("DeviceController", "Bluetooth is not supported on this device.")
-            Toast.makeText(context, "Bluetooth is not supported on this device.", Toast.LENGTH_SHORT).show()
-            return "Bluetooth is not supported."
+            Toast.makeText(context, context.getString(R.string.bluetooth_error), Toast.LENGTH_SHORT).show()
+            return context.getString(R.string.bluetooth_error)
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -62,17 +64,17 @@ class DeviceController(private val context: Context) {
                 val enableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                 context.startActivity(enableIntent)
                 Log.i("DeviceController", "Bluetooth enabling process initiated.")
-                "Turning on Bluetooth..."
+                context.getString(R.string.bluetooth_on)
             } else {
-                "Bluetooth is already on."
+                context.getString(R.string.bluetooth_already_on)
             }
         } else {
             if (bluetoothAdapter.isEnabled) {
                 bluetoothAdapter.disable()
                 Log.i("DeviceController", "Bluetooth disabling process initiated.")
-                "Turning off Bluetooth..."
+                context.getString(R.string.bluetooth_off)
             } else {
-                "Bluetooth is already off."
+                context.getString(R.string.bluetooth_already_off)
             }
         }
     }
@@ -85,17 +87,16 @@ class DeviceController(private val context: Context) {
 
             if ((wifiManager.isWifiEnabled && enable) || (!wifiManager.isWifiEnabled && !enable)) {
                 Log.d("DeviceController", "Wi-Fi is already ${if (enable) "on" else "off"}.")
-                "Wi-Fi is already ${if (enable) "on" else "off"}."
+                context.getString(if (enable) R.string.wifi_already_on else R.string.wifi_already_off)
             } else {
-                Toast.makeText(context, String.format("Please turn Wi-Fi %s manually.", if (enable) "on" else "off"), Toast.LENGTH_SHORT).show()
                 val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
                 context.startActivity(intent)
                 Log.i("DeviceController", "Redirecting to Wi-Fi settings.")
-                String.format("Turning %s Wi-Fi...", if (enable) "on" else "off")
+                context.getString(if (enable) R.string.wifi_on else R.string.wifi_off)
             }
         } catch (e: Exception) {
             Log.e("DeviceController", "Error opening settings: ${e.message}")
-            "Failed to open settings."
+            context.getString(R.string.wifi_error)
         }
     }
 
@@ -107,14 +108,14 @@ class DeviceController(private val context: Context) {
             if(alarmIntent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(alarmIntent)
                 Log.i("DeviceController", "Alarm app opened successfully.")
-                "Setting alarm..."
+                context.getString(R.string.alarm_setting)
             } else {
                 Log.e("DeviceController", "No alarm app found.")
-                "No alarm app found :("
+                context.getString(R.string.alarm_error)
             }
         } catch (e: Exception) {
             Log.e("DeviceController", "Error opening alarm app: ${e.message}")
-            "Failed to open alarm app."
+            context.getString(R.string.alarm_error)
         }
     }
 
@@ -131,14 +132,14 @@ class DeviceController(private val context: Context) {
             if (cameraIntent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(cameraIntent)
                 Log.i("DeviceController", "Camera app opened successfully.")
-                "Opening camera..."
+                context.getString(R.string.camera_opening)
             } else {
                 Log.e("DeviceController", "No camera app found.")
-                "No camera app found :("
+                context.getString(R.string.camera_error)
             }
         } catch(e: Exception) {
             Log.e("DeviceController", "Error opening camera: ${e.message}")
-            "Error opening camera: ${e.message}"
+            context.getString(R.string.camera_error)
         }
     }
 
@@ -150,14 +151,14 @@ class DeviceController(private val context: Context) {
             if (settingsIntent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(settingsIntent)
                 Log.i("DeviceController", "Settings opened successfully.")
-                "Opening settings..."
+                context.getString(R.string.settings_opening)
             } else {
                 Log.e("DeviceController", "Unable to open settings.")
-                "Unable to open settings :("
+                context.getString(R.string.settings_error)
             }
         } catch (e: Exception) {
             Log.e("DeviceController", "Error opening settings: ${e.message}")
-            "Error opening settings: ${e.message}"
+            context.getString(R.string.settings_error)
         }
     }
 }

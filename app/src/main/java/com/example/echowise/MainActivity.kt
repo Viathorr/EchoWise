@@ -7,7 +7,11 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.ImageButton
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -35,9 +39,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recordButton: ImageButton
     private lateinit var responseLog: TextView
     private lateinit var instructionTextView: TextView
+    private lateinit var languageSpinner: Spinner
 
     private val deviceController = DeviceController(this)
     private val commandProcessor = CommandProcessor(this, deviceController)
+
+    private var languageOptions = arrayOf<String>("English", "Українська")
+    private var isSpinnerInitialized = false
+    private var currentLocale: String = Locale.getDefault().language
 
     private val speechRecognizerLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -63,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        isSpinnerInitialized = false
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
@@ -71,6 +81,40 @@ class MainActivity : AppCompatActivity() {
         recordButton = findViewById(R.id.recordButton)
         responseLog = findViewById(R.id.responseLog)
         instructionTextView = findViewById(R.id.instruction)
+        languageSpinner = findViewById(R.id.languageSpinner)
+
+        val adapter: ArrayAdapter<CharSequence> = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            languageOptions
+        )
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+        languageSpinner.adapter = adapter
+
+        val initialPosition = languageOptions.indexOf(
+            if (currentLocale == "uk") "Українська" else "English"
+        )
+        languageSpinner.setSelection(initialPosition)
+
+        languageSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parentView: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedLanguage = languageOptions[position]
+                val newLocale = if (selectedLanguage == "Українська") "uk" else "en"
+
+                if (newLocale != currentLocale) {
+                    currentLocale = newLocale
+                    Log.d("MainActivity", "Changing locale to $newLocale")
+                    setLocale(newLocale)
+                } else {
+                    Log.d("MainActivity", "Locale unchanged: $newLocale")
+                }
+            }
+
+            override fun onNothingSelected(parentView: AdapterView<*>?) {
+            }
+        }
 
         startFadingAnimation()
 
@@ -78,6 +122,21 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Record button clicked.")
             startVoiceInput()
         }
+
+
+    }
+
+    private fun setLocale(localeCode: String) {
+        Log.d("MainActivity", "Setting Locale to ${localeCode}")
+        val locale = Locale(localeCode)
+        Locale.setDefault(locale)
+
+        val config = resources.configuration
+        config.setLocale(locale)
+
+        resources.updateConfiguration(config, resources.displayMetrics)
+
+        recreate()
     }
 
     private fun startFadingAnimation() {
@@ -93,24 +152,34 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_PERMISSIONS_CODE)
         } else {
             Log.d("MainActivity", "Record audio permission granted. Launching speech recognizer.")
+            val locale = Locale.getDefault()
+            val language = locale.language
+
+            val localeTag = if (language == "uk") {
+                "${locale.language}-UA"
+            } else {
+                "${locale.language}-GB"
+            }
+
+            Log.d("MainActivity", "LocaleTag:  $localeTag")
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening... Please say a command.")
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeTag)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.listening_prompt))
             }
 
             try {
                 speechRecognizerLauncher.launch(intent)
-                Log.d("MainActivity", "Speech recognizer launched successfully.")
+                Log.d("MainActivity", getString(R.string.listening_prompt))
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error launching speech recognizer: ${e.message}")
-                Toast.makeText(this, "Speech recognition is not supported on this device.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.speech_not_supported), Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun setDefaultText() {
-        responseLog.text = "Waiting for command..."
+        responseLog.text = getString(R.string.waiting_for_command)
         Log.d("MainActivity", "ResponseLog reset to default text.")
     }
 }
