@@ -21,108 +21,143 @@ import com.example.echowise.utils.AppConstants.REQUEST_PERMISSIONS_CODE
 
 class DeviceController(private val context: Context) {
     fun toggleFlashlight(enable: Boolean): String {
+        Log.d("DeviceController", "toggleFlashlight called with enable=$enable")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            Log.w("DeviceController", "Camera permission not granted, requesting permission")
             ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.CAMERA), REQUEST_PERMISSIONS_CODE)
         }
 
         val cameraManager: CameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         val cameraId: String = cameraManager.cameraIdList.firstOrNull() ?: ""
 
-        if (enable && cameraId != "") {
-            cameraManager.setTorchMode(cameraId, true)
-            return "Turning on flashlight..."
-        } else if (!enable && cameraId != "") {
-            cameraManager.setTorchMode(cameraId, false)
-            return "Turning off flashlight..."
-        } else {
-            Log.e("HardwareController", "Failed to toggle flashlight: No flashlight is available")
-            return "No flashlight is present."
+        return try {
+            cameraManager.setTorchMode(cameraId, enable)
+            Log.i("DeviceController", "Flashlight turned ${if (enable) "on" else "off"}.")
+            "Turning ${if (enable) "on" else "off"} flashlight..."
+        } catch (e: Exception) {
+            Log.e("DeviceController", "Error toggling flashlight: ${e.message}")
+            "Failed to toggle flashlight."
         }
     }
 
     fun toggleBluetooth(enable: Boolean): String {
+        Log.d("DeviceController", "toggleBluetooth called with enable=$enable")
         val bluetoothAdapter: BluetoothAdapter? = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
 
         if (bluetoothAdapter == null) {
-            Log.e("HardwareController", "Failed to toggle Bluetooth: Bluetooth is not supported on this device.")
+            Log.e("DeviceController", "Bluetooth is not supported on this device.")
             Toast.makeText(context, "Bluetooth is not supported on this device.", Toast.LENGTH_SHORT).show()
             return "Bluetooth is not supported."
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                Log.w("DeviceController", "Bluetooth connect permission not granted, requesting permission")
                 ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQUEST_PERMISSIONS_CODE)
             }
         }
 
-        if (enable) {
+        return if (enable) {
             if (!bluetoothAdapter.isEnabled) {
                 val enableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                 context.startActivity(enableIntent)
-                Log.i("HardwareController", "Turned on Bluetooth.")
-                return "Turning on Bluetooth..."
+                Log.i("DeviceController", "Bluetooth enabling process initiated.")
+                "Turning on Bluetooth..."
             } else {
-                return "Bluetooth is already on."
+                "Bluetooth is already on."
             }
         } else {
             if (bluetoothAdapter.isEnabled) {
                 bluetoothAdapter.disable()
-                Log.i("HardwareController", "Turned off Bluetooth.")
-                return "Turning off Bluetooth..."
+                Log.i("DeviceController", "Bluetooth disabling process initiated.")
+                "Turning off Bluetooth..."
             } else {
-                return "Bluetooth is already off."
+                "Bluetooth is already off."
             }
         }
     }
 
     fun toggleWiFi(enable: Boolean): String {
-        val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        Log.d("DeviceController", "toggleWiFi called with enable=$enable")
 
-        if (wifiManager.isWifiEnabled && enable) {
-            return "Wi-Fi is already on."
-        } else if (!wifiManager.isWifiEnabled && enable) {
-            return "Wi-Fi is already off."
-        } else {
-            Toast.makeText(context, String.format("Please turn Wi-Fi %s manually.", if (enable) "on" else "off"), Toast.LENGTH_SHORT).show()
-            val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
-            context.startActivity(intent)
-            return String.format("Turning %s Wi-Fi...", if (enable) "on" else "off")
+        return try {
+            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+            if ((wifiManager.isWifiEnabled && enable) || (!wifiManager.isWifiEnabled && !enable)) {
+                Log.d("DeviceController", "Wi-Fi is already ${if (enable) "on" else "off"}.")
+                "Wi-Fi is already ${if (enable) "on" else "off"}."
+            } else {
+                Toast.makeText(context, String.format("Please turn Wi-Fi %s manually.", if (enable) "on" else "off"), Toast.LENGTH_SHORT).show()
+                val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
+                context.startActivity(intent)
+                Log.i("DeviceController", "Redirecting to Wi-Fi settings.")
+                String.format("Turning %s Wi-Fi...", if (enable) "on" else "off")
+            }
+        } catch (e: Exception) {
+            Log.e("DeviceController", "Error opening settings: ${e.message}")
+            "Failed to open settings."
         }
     }
 
     fun setAlarm(): String {
-        val alarmIntent = Intent(AlarmClock.ACTION_SET_ALARM)
-        context.startActivity(alarmIntent)
-        return "Setting alarm..."
+        Log.d("DeviceController", "setAlarm called")
+        return try {
+            val alarmIntent = Intent(AlarmClock.ACTION_SET_ALARM)
+
+            if(alarmIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(alarmIntent)
+                Log.i("DeviceController", "Alarm app opened successfully.")
+                "Setting alarm..."
+            } else {
+                Log.e("DeviceController", "No alarm app found.")
+                "No alarm app found :("
+            }
+        } catch (e: Exception) {
+            Log.e("DeviceController", "Error opening alarm app: ${e.message}")
+            "Failed to open alarm app."
+        }
     }
 
     fun openCamera(): String {
+        Log.d("DeviceController", "openCamera called")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            Log.w("DeviceController", "Camera permission not granted, requesting permission")
             ActivityCompat.requestPermissions(context as Activity, arrayOf(Manifest.permission.CAMERA), REQUEST_PERMISSIONS_CODE)
         }
 
-        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        return try {
+            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
 
-        if (cameraIntent.resolveActivity(context.packageManager) != null) {
-            context.startActivity(cameraIntent)
-            return "Opening camera..."
-        } else {
-            return "No camera app found :("
+            if (cameraIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(cameraIntent)
+                Log.i("DeviceController", "Camera app opened successfully.")
+                "Opening camera..."
+            } else {
+                Log.e("DeviceController", "No camera app found.")
+                "No camera app found :("
+            }
+        } catch(e: Exception) {
+            Log.e("DeviceController", "Error opening camera: ${e.message}")
+            "Error opening camera: ${e.message}"
         }
     }
 
     fun openSettings(): String {
-        try {
+        Log.d("DeviceController", "openSettings called")
+        return try {
             val settingsIntent = Intent(Settings.ACTION_SETTINGS)
 
             if (settingsIntent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(settingsIntent)
-                return "Opening settings..."
+                Log.i("DeviceController", "Settings opened successfully.")
+                "Opening settings..."
             } else {
-                return "Unable to open settings :("
+                Log.e("DeviceController", "Unable to open settings.")
+                "Unable to open settings :("
             }
         } catch (e: Exception) {
-            return "Error opening settings: ${e.message}"
+            Log.e("DeviceController", "Error opening settings: ${e.message}")
+            "Error opening settings: ${e.message}"
         }
     }
 }
